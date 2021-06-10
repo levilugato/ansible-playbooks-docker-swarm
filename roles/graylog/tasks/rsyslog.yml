@@ -1,0 +1,7 @@
+- name: rsyslog
+  become: yes
+  template:
+    src: 10-graylog2.conf.j2
+    dest: /etc/rsyslog.d/10-graylog2.conf
+  notify:
+    - restart rsyslog

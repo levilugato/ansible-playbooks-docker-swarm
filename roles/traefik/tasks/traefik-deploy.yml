@@ -1,0 +1,51 @@
+---
+- name: Create directories
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ traefik_directory }}"
+    - "{{ traefik_directory }}/conf.d"
+
+- name: Render traefik config
+  become: yes
+  template:
+    src: traefik.toml.j2
+    dest: "{{ traefik_directory }}/traefik.toml"
+  
+- name: Render docker-compose config
+  become: yes
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ traefik_directory }}/docker-compose.yml"
+
+- name: Ensure acme config
+  become: yes
+  file:
+    path: "{{ traefik_directory }}/acme.json"
+    state: touch
+    mode: 0600
+  when: traefik_acme_enable
+
+- name: Create traefik docker network
+  docker_network:
+    name: traefik
+    state: present
+    driver: overlay 
+
+- name: Pull Docker image
+  docker_image:
+    name: traefik
+    tag: "{{ traefik_version }}"
+
+- name: deploy traefik
+  shell: docker stack deploy -c {{ traefik_directory }}/docker-compose.yml traefik
+  register: result_traefik
+
+- name: Show exec output container 
+  debug: msg="{{ result_traefik }}"
+
+
+
+

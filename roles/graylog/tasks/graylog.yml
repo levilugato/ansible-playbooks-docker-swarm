@@ -1,0 +1,47 @@
+- name: Render graylog config
+  become: yes
+  template:
+    src: docker-compose-graylog.yml.j2
+    dest: "/tmp/docker-compose-graylog.yml"
+
+- name: Create graylog docker network
+  docker_network:
+    name: graylog
+    state: present
+    driver: overlay 
+
+- name: deploy graylog
+  shell: docker stack deploy -c /tmp/docker-compose-graylog.yml graylog
+  register: result_graylog
+
+- name: Show exec output container 
+  debug: msg="{{ result_graylog }}"
+
+- name: add logs entrance in hosts to /etc/hosts
+  become: yes
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "^{{ item['ip'] }}.*$"
+    line: "{{ item['ip'] }}\t\t{{ item['names'] | join(' ') }}"
+    state: present
+  with_items:
+  - ip: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+    names:
+    - "logs-{{ ENVIRO }}.{{ domain_graylog }}"
+
+- name: "Wait for Graylog server to startup"
+  uri:
+    url: "http://logs-{{ ENVIRO }}.{{ domain_graylog }}"
+    status_code: 200
+    validate_certs: False
+  register: result
+  until: result.status == 200
+  retries: 60
+  delay: 5
+  
+- name: Register IP
+  shell: > 
+        hostname -I | cut -d' ' -f1 
+  tags: ip_manager_graylog
+  register: manager_ip_graylog
+ 

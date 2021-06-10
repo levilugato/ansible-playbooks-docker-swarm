@@ -1,0 +1,5 @@
+- name: Configuring services.....
+  hosts: swarm-managers
+
+  roles:
+    - portainer

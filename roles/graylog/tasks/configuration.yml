@@ -1,0 +1,105 @@
+- name: create graylog global udp input for receiving logs
+  uri:
+    url: "http://logs-{{ ENVIRO }}.{{ domain_graylog }}/api/system/inputs"
+    method: POST
+    user: "admin"
+    password: "{{ graylog_password_secret }}"
+    body: '{"title":"SF global GELF input","type":"org.graylog2.inputs.gelf.udp.GELFUDPInput","configuration":{"bind_address":"0.0.0.0","port":12201,"recv_buffer_size":262144,"override_source":null,"decompress_size_limit":8388608},"global":true}'
+    force_basic_auth: yes
+    headers:
+        X-Requested-By: "admin" 
+    status_code: 201
+    body_format: json
+
+- name: create graylog global syslog input
+  uri:
+    url: "http://logs-{{ ENVIRO }}.{{ domain_graylog }}/api/system/inputs"
+    method: POST
+    user: "admin"
+    password: "{{ graylog_password_secret }}"
+    body: '{"title":"SF Syslog global input","type":"org.graylog2.inputs.syslog.udp.SyslogUDPInput","configuration":{"bind_address":"0.0.0.0", "port":514, "recv_buffer_size":1048572, "override_source":null, "allow_override_date":true, "store_full_message":true, "force_rdns":false}, "global":true}'
+    force_basic_auth: yes
+    headers:
+        X-Requested-By: "admin" 
+    status_code: 201
+    body_format: json
+
+- name: verify if role exists
+  uri:
+    url: "http://logs-{{ ENVIRO }}.{{ domain_graylog }}/api/roles/devs"
+    method: GET
+    user: "admin"
+    password: "{{ graylog_password_secret }}"
+    force_basic_auth: yes
+    headers:
+        X-Requested-By: "admin" 
+    status_code: 200
+  register: role    
+  ignore_errors: yes 
+
+- name: Create new Role for Developers
+  uri:
+    url: "http://logs-{{ ENVIRO }}.{{ domain_graylog }}/api/roles"
+    method: POST
+    user: "admin"
+    password: "{{ graylog_password_secret }}"
+    body: '{"name":"devs", "permissions":["streams:read:000000000000000000000001"]}'
+    force_basic_auth: yes
+    headers:
+        X-Requested-By: "admin" 
+    status_code: 201
+    body_format: json
+  when: role is failed
+
+- name: verify if user exists
+  uri:
+    url: "http://logs-{{ ENVIRO }}.{{ domain_graylog }}/api/users/devs"
+    method: GET
+    user: "admin"
+    password: "{{ graylog_password_secret }}"
+    force_basic_auth: yes
+    headers:
+        X-Requested-By: "admin" 
+    status_code: 200
+  register: user    
+  ignore_errors: yes 
+
+- name: create Dev user 
+  uri:
+    url: "http://logs-{{ ENVIRO }}.{{ domain_graylog }}/api/users"
+    method: POST
+    user: "admin"
+    password: "{{ graylog_password_secret }}"
+    body: '{"username":"devs", "password":"{{ graylog_password_dev }}", "email":"{{ graylog_email_dev }}", "roles":["reader", "devs"], "full_name":"Developers", "timezone":"America/Sao_Paulo", 
+    "permissions":[
+    "users:edit:devs",
+    "users:tokenlist:devs",
+    "users:tokenremove:devs",
+    "streams:read:000000000000000000000001",
+    "users:tokencreate:devs",
+    "users:passwordchange:devs",
+    "streams:edit:000000000000000000000001",
+    "clusterconfigentry:read",
+    "indexercluster:read",
+    "messagecount:read",
+    "journal:read",
+    "messages:analyze",
+    "inputs:read",
+    "metrics:read",
+    "savedsearches:edit",
+    "fieldnames:read",
+    "buffers:read",
+    "system:read",
+    "savedsearches:create",
+    "jvmstats:read",
+    "decorators:read",
+    "throughput:read",
+    "savedsearches:read",
+    "messages:read"]}'
+    force_basic_auth: yes
+    headers:
+        X-Requested-By: "admin" 
+    status_code: 201
+    body_format: json
+  when: user is failed
+

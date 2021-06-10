@@ -1,0 +1,20 @@
+---
+- name: Create directories
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ portainer_directory }}"
+
+- name: deploy portainer 
+  shell: curl -L https://downloads.portainer.io/portainer-agent-stack.yml -o portainer-agent-stack.yml && docker stack deploy --compose-file=portainer-agent-stack.yml portainer
+  register: result_portainer
+
+- name: Show exec output container 
+  debug: msg="{{ result_portainer }}"
+
+- name: Wait for container
+  wait_for:
+    port: "{{ host_port }}"
+    host: "{{ vlan_interface }}"

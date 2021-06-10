@@ -1,0 +1,10 @@
+- name: Configuring gitlab-runner.....
+  hosts: swarm-managers
+
+  roles:
+    - gitlab-runner
+
+
+
+
+    

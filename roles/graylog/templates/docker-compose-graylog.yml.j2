@@ -1,0 +1,99 @@
+# {{ ansible_managed }}
+version: '3.4'
+
+services:
+  # MongoDB: https://hub.docker.com/_/mongo/
+  mongo:
+    image: mongo:3
+    networks:
+      - graylog
+    volumes:
+      - mongo_data:/data/db
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1024M
+      placement:
+        constraints:
+          - node.role == manager
+  # Elasticsearch: https://www.elastic.co/guide/en/elasticsearch/reference/5.6/docker.html
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.5.4
+    networks:
+      - graylog
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    environment:
+      - http.host=0.0.0.0
+      - transport.host=localhost
+      - network.host=0.0.0.0
+      - "ES_JAVA_OPTS=-Xms900m -Xmx900m"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 2048M
+      placement:
+        constraints:
+          - node.role == manager
+   
+  # Graylog: https://hub.docker.com/r/graylog/graylog/
+  graylog:
+    image: graylog/graylog:3.1
+    volumes:
+      - graylog_core:/usr/share/graylog/data/journal
+    networks:
+      - graylog
+      - traefik
+    extra_hosts:
+      - "logs-{{ ENVIRO }}.{{ domain }}:{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}" 
+    environment:
+      - GRAYLOG_PASSWORD_SECRET={{ graylog_password_secret }} 
+      - GRAYLOG_ROOT_TIMEZONE=America/Sao_Paulo
+      - GRAYLOG_ROOT_PASSWORD_SHA2={{ graylog_root_password }}
+      - GRAYLOG_ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - GRAYLOG_IS_MASTER=true
+      - GRAYLOG_HTTP_PUBLISH_URI=http://logs-{{ ENVIRO }}.{{ domain_graylog }}/
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://logs-{{ ENVIRO }}.{{ domain_graylog }}/
+    ports:
+      # Graylog web interface and REST API
+      # Syslog TCP
+      - 514:514
+      # Syslog UDP
+      - 514:514/udp
+      # GELF TCP
+      - 12201:12201
+      # GELF UDP
+      - 12201:12201/udp
+# Volumes for persisting data, see https://docs.docker.com/engine/admin/volumes/volumes/
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.backend.loadbalancer.swarm=true"
+        - "traefik.docker.network=traefik"
+        - "traefik.backend=graylog"
+        - "traefik.enable=true"
+        - "traefik.frontend.passHostHeader=true"
+        - "traefik.frontend.rule=Host:logs-{{ ENVIRO }}.{{ domain_graylog }}"
+        - "traefik.port=9000"
+        - "traefik.frontends.headers.customRequestHeaders=X-Graylog-Server-URL:http://logs-{{ ENVIRO }}.{{ domain_graylog }}/api/"
+        - "traefik.frontends.graylog.routes.route_1=logs-{{ ENVIRO }}.{{ domain_graylog }}"
+
+networks:
+  traefik:
+    external: yes
+  graylog:
+    external: yes
+
+volumes:
+  mongo_data:
+    driver: local
+  es_data:
+    driver: local
+  graylog_core:
+    driver: local

@@ -1,0 +1,77 @@
+---
+- name:  yum_repository EPEL
+  become: yes
+  yum_repository:
+      baseurl: https://dl.fedoraproject.org/pub/epel/7Server/x86_64/
+      description: "Epel release."
+      name: epel-release
+      state: present
+  
+- name: install the 'Development tools' package group
+  become: yes
+  yum:
+    name: "@Development tools"
+    state: present
+
+- name: upgrade all packages
+  yum: name=* state=latest
+  become: yes
+
+- name: Check if EPEL repo is already configured.
+  stat:
+    path: "{{ epel_repofile_path }}"
+  register: epel_repofile_result
+
+- name: Install EPEL repo.
+  yum:
+    name: "{{ epel_repo_url }}"
+    state: present
+  register: result
+  until: result is succeeded
+  retries: 5
+  delay: 10
+  become: yes
+  when: not epel_repofile_result.stat.exists
+
+- name: Import EPEL GPG key.
+  rpm_key:
+    key: "{{ epel_repo_gpg_key_url }}"
+    state: present
+  when: not epel_repofile_result.stat.exists
+  become: yes
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Install Python-pip.
+  yum:
+    name: python-pip
+    state: present
+  become: yes
+
+- name: upgrade pip so package installs are not broken
+  pip:
+    name: pip
+    state: latest
+  become: yes
+
+- name: install docker-py on remote machine
+  pip:
+    name: "{{ item.name }}"
+    version: "{{ item.version }}"
+  become: yes
+  with_items:
+    - { name: "docker-py", version: "latest" }
+
+- name: Install a list of packages
+  yum:
+    name:     
+      - curl
+      - tcpdump
+      - telnet
+      - wget
+      - vim
+      - net-tools
+      - unzip
+      - firewalld
+    state: present
+  become: yes
+

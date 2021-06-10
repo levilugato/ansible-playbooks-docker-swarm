@@ -1,0 +1,44 @@
+---
+- name: Check if Swarm has already been Initialized
+  shell: docker ps
+  register: swarm_status
+  ignore_errors: true
+  tags: swarm
+
+- name: Initialize Docker Swarm
+  shell: >
+        docker swarm init
+        --advertise-addr {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }} --listen-addr 0.0.0.0:2377
+  #when: swarm_status.rc != 0
+  become: yes
+  run_once: true
+  tags: swarm
+
+- name: Add Docker Gwbridge to Firewall
+  shell: >
+       firewall-cmd --permanent --zone=trusted --change-interface=docker0
+  become: yes
+  tags: swarm
+  notify: disable os firewalld
+
+- name: Register IP
+  shell: > 
+        hostname --ip-address 
+  tags: swarm, ip
+  register: manager_ip
+
+- name: expose variable
+  set_fact: 
+      manager_ip = "{{ hostvars[groups['swarm-managers'][0]]['manager_ip']['stdout'] }}"
+  tags: ip
+
+- name: Get the Manager join-token
+  shell: docker swarm join-token --quiet manager
+  register: manager_token
+  tags: swarm
+
+- name: Get the worker join-token
+  shell: docker swarm join-token --quiet worker
+  register: worker_token
+  tags: swarm
+

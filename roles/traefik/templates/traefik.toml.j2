@@ -1,0 +1,73 @@
+# {{ ansible_managed }}
+debug = {{ traefik_debug_enable | lower }}
+
+logLevel = "{{ traefik_log_level }}"
+defaultEntryPoints = ["https","http"]
+
+[traefikLog]
+  filePath="/dev/stdout"
+  format = "json"
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":{{ traefik_entrypoint_http_port }}"
+{% if traefik_entrypoint_http_redirect_to_https %}
+    [entryPoints.http.redirect]
+{% endif %}
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":{{ traefik_entrypoint_https_port }}"
+    [entryPoints.https.tls]
+{% if traefik_dashboard_enable %}
+  [entryPoints.traefik]
+  address = ":{{ traefik_dashboard_entrypoint_port }}"
+{% if traefik_dashboard_basicauth_enable %}
+    [entryPoints.traefik.auth.basic]
+    users = [{% for htpasswd in traefik_dashboard_basicauth_users %}"{{ htpasswd }}"{{ "," if not loop.last else "" }}{% endfor %}]
+{% endif %}
+{% endif %}
+
+[retry]
+
+{% if traefik_dashboard_enable %}
+[api]
+entryPoint = "traefik"
+  [api.statistics]
+    recentErrors = 10 
+{% endif %}
+
+[file]
+directory = "/conf.d"
+watch = true
+
+{% if traefik_docker_enable %}
+[docker]
+endpoint = "unix:///var/run/docker.sock"
+domain = "{{ domain }}"
+swarmmode = true
+watch = true
+exposedByDefault = {{ traefik_docker_expose_by_default | lower }}
+{% endif %}
+
+{% if traefik_acme_enable %}
+[acme]
+email = "{{ traefik_acme_email }}"
+storage = "acme.json"
+entryPoint = "https"
+onHostRule = {{ traefik_acme_autocreate_from_host | lower }}
+[acme.httpChallenge]
+entryPoint = "http"
+{% endif %}
+
+{% if traefik_consul_enable %}
+[consul]
+endpoint = "{{ traefik_consul_endpoint }}"
+watch = {{ traefik_consul_watch | lower }}
+prefix = "{{ traefik_consul_prefix }}"
+{% endif %}
+
+[metrics]
+  [metrics.prometheus]
+    entryPoint = "traefik"
+    buckets=[0.1,0.3,1.2,5.0]
+

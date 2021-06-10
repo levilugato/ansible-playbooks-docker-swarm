@@ -1,0 +1,5 @@
+- name: Configuring services.....
+  hosts: all
+
+  roles:
+    - install-modules

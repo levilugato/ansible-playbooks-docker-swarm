@@ -1,0 +1,20 @@
+
+# Portainer version
+version: latest
+
+# Misc settings
+company_logo_url: 'http://www.yourdomain.com.br/site/images/online/_g_noticias_80932_SF-Sao-Francisco-vertical1.jpg'
+templates_url: 'https://raw.githubusercontent.com/portainer/templates/master/templates.json'
+
+# Networking
+host_port: 9000
+vlan_interface: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+portainer_endpoint: "http://{{ vlan_interface }}:{{ host_port }}/api"
+
+# Admin User
+admin_user: admin
+admin_password: s@ofrancisco
+
+portainer_directory: /opt/portainer
+
+

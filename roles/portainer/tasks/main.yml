@@ -1,0 +1,4 @@
+- include_tasks: portainer.yml
+
+- include_tasks: admin.yml
+  when: admin_user and admin_password is defined

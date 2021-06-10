@@ -1,0 +1,17 @@
+---
+- name: Check if Swarm has already been Initialized
+  shell: docker info | grep -i Swarm | grep -w -c "active"
+  register: swarm_status
+  ignore_errors: true
+  tags: swarm
+
+- name: Add Workers to the Swarm
+  vars:
+      token: "{{ hostvars[groups['swarm-managers'][0]]['worker_token']['stdout'] }}"
+      master: "{{ hostvars[groups['swarm-managers'][0]]['manager_ip']['stdout'] }}"
+  shell: "docker swarm join --token {{ token }} {{ master}}:2377"
+  tags: swarm
+  when: swarm_status.rc != 0
+  
+
+

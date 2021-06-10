@@ -1,0 +1,11 @@
+- name: disable os firewalld
+  become: yes
+  service:
+    name: firewalld
+    state: stopped
+  
+- name: restart docker 
+  become: yes
+  service:
+    name: docker
+    state: restarted

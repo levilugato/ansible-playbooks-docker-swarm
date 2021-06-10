@@ -1,0 +1,6 @@
+---
+graylog_password_secret: s@ofranciscosaud3
+graylog_root_password: 09b0f0a86101c282cbe21ee86c108a7fde3973932decaecdce6a32f77a5a2b8b 
+domain_graylog: yourdomain.tech
+graylog_password_dev: dev@123
+graylog_email_dev: levilugato@yourdomain.com.br

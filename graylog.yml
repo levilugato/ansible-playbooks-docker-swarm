@@ -1,0 +1,16 @@
+- name: Configuring graylog.....
+  hosts: swarm-managers
+  roles:
+    - graylog
+  
+- name: Sylog
+  hosts: docker-nodes
+  tasks:
+  - debug:
+      msg: "Configuring Syslog"
+
+  - name: Run a task from a role
+    include_role:
+       name: graylog
+       tasks_from: rsyslog
+

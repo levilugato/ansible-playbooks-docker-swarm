@@ -1,0 +1,22 @@
+# - name: verify Docker installation
+#   hosts: docker-nodes
+#   command: docker info
+#   register: docker_info
+
+- name: install docker
+  hosts: docker-nodes
+  roles:
+    - role: docker-installation
+      docker_use_custom_network: True
+      docker_bip: 10.10.100.1/24
+      docker_systemd_setup: True
+
+- name: initialize docker swarm
+  hosts: swarm-managers
+  roles:
+    - docker-swarm-init
+
+- name: add workers to the swarm
+  hosts: swarm-workers
+  roles:
+    - docker-swarm-add-worker
