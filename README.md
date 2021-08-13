@@ -3,7 +3,7 @@
 Hosts file: 
 
 ```
-exemplo: 
+exemple: 
 $ cat /etc/hosts
 192.168.1.10 swarm-manager
 192.168.1.11 swarm-worker-1
